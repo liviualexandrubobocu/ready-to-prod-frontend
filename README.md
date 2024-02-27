@@ -64,7 +64,9 @@ autoprefixer: {},
 }
 }
 
-## 5. Setup Cors
+## Setup backend connection 
+
+### 5.1 Setup Cors
 
 In Nest.js App, in main.ts file set
 
@@ -78,6 +80,27 @@ async function bootstrap() {
   await app.listen(3000);
 }
 bootstrap();
+
+```
+### 5.2 Setup reverse proxy
+
+```
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    proxy: {
+      "/v1": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/v1/, ""),
+      },
+    },
+  },
+});
 
 ```
 
