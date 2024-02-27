@@ -9,9 +9,9 @@ This is a frontend project to sustain the initiative "Are you ready to prod?" co
 `npm i`
 `npm run dev`
 
-## 2. Install packages for frotend application for routing, forms, translations, react query
+## 2. Install packages for frotend application for routing, forms, translations, react query, icons
 
-`npm install react-router-dom formik react-i18next @tanstack/react-query`
+`npm install react-router-dom formik react-i18next @tanstack/react-query react-icons`
 
 ## 3. Install prettier for formatting
 
@@ -340,25 +340,44 @@ export default Navbar;
 ## 13. Create Users List Page
 
 ```
-
 // Internal
 import React from "react";
 import { useUsers } from "../hooks/useUsers";
 import User from "../models/Users";
+import { useNavigate } from "react-router-dom";
+import { FiEdit } from "react-icons/fi";
 
 const UsersPage = () => {
   const { data: users, isLoading } = useUsers();
+  const navigate = useNavigate();
 
   if (isLoading) return <div>Loading...</div>;
 
+  const handleCreateClick = () => {
+    navigate("/users/create");
+  };
+
+  const handleEditClick = (userId: number) => {
+    navigate(`/users/${userId}`);
+  };
+
   return (
     <div className="container mx-auto p-4">
+      <div className="mb-4">
+        <button
+          onClick={handleCreateClick}
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Create
+        </button>
+      </div>
       <div className="shadow-md rounded-lg overflow-hidden">
         <div className="bg-gray-100 p-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 font-bold">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 font-bold">
             <div>Id</div>
             <div>Username</div>
             <div>Email</div>
+            <div>Edit</div> {/* Added column for edit icon */}
           </div>
         </div>
         <div className="bg-white">
@@ -366,11 +385,19 @@ const UsersPage = () => {
             users.map((user: User) => (
               <div
                 key={user.id}
-                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 border-b last:border-b-0"
+                className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4 border-b last:border-b-0"
               >
                 <div>{user.id}</div>
                 <div>{user.username}</div>
                 <div>{user.email}</div>
+                <div>
+                  <button
+                    onClick={() => handleEditClick(user.id)}
+                    className="text-blue-500 hover:text-blue-700"
+                  >
+                    <FiEdit />
+                  </button>
+                </div>
               </div>
             ))}
         </div>
@@ -496,55 +523,53 @@ const EditUserForm = () => {
       updateUser(id, userData as BodyInit),
   );
   return (
-    <>
-      {id && (
-        <div className="p-4">
-          <Formik
-            enableReinitialize
-            initialValues={user}
-            onSubmit={(values: Partial<User>, { setSubmitting }) => {
-              mutation &&
-                mutation.mutate(
-                  { id: id as string, userData: values },
-                  {
-                    onSuccess: () => {
-                      setSubmitting(false);
-                    },
-                  },
-                );
-              navigate("/users");
-            }}
-          >
-            {({ isSubmitting }) => (
-              <Form className="space-y-4">
-                <div>
-                  <Field
-                    name="username"
-                    className="input border-gray-300 rounded p-2 w-full"
-                    placeholder="Username"
-                  />
-                </div>
-                <div>
-                  <Field
-                    name="email"
-                    type="email"
-                    className="input border-gray-300 rounded p-2 w-full"
-                    placeholder="Email"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-700"
-                >
-                  Update
-                </button>
-              </Form>
-            )}
-          </Formik>
-        </div>
-      )}
-    </>
+    <div className="p-4">
+      <Formik
+        enableReinitialize
+        initialValues={user ?? { username: "", email: "" }}
+        onSubmit={(values: Partial<User>, { setSubmitting }) => {
+          mutation &&
+            mutation.mutate(
+              { id: id as string, userData: values },
+              {
+                onSuccess: () => {
+                  setSubmitting(false);
+                },
+              },
+            );
+          navigate("/users");
+        }}
+      >
+        {({ isSubmitting, values }) => (
+          <Form className="space-y-4">
+            <div>
+              <Field
+                name="username"
+                className="input border-gray-300 rounded p-2 w-full"
+                placeholder="Username"
+                value={values.username}
+              />
+            </div>
+            <div>
+              <Field
+                name="email"
+                type="email"
+                className="input border-gray-300 rounded p-2 w-full"
+                placeholder="Email"
+                value={values.email}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-700"
+            >
+              Update
+            </button>
+          </Form>
+        )}
+      </Formik>
+    </div>
   );
 };
 
