@@ -7,9 +7,12 @@
     "dev": "vite",
     "build": "npx prettier . --write && tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "format": "npx prettier . --write"
   },
   "dependencies": {
+    "@azure/msal-browser": "^3.10.0",
+    "@azure/msal-react": "^2.0.12",
     "@tailwindcss/forms": "^0.5.7",
     "@types/node": "^20.11.20",
     "axios": "^1.6.7",
