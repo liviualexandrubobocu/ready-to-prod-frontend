@@ -11,7 +11,7 @@ This is a frontend project to sustain the initiative "Are you ready to prod?" co
 
 ## 2. Install packages for frotend application for routing, forms, translations, react query, icons
 
-`npm install react-router-dom formik react-i18next @tanstack/react-query react-icons`
+`npm install react-router-dom formik react-i18next react-query react-icons`
 
 ## 3. Install prettier for formatting
 
@@ -64,7 +64,7 @@ autoprefixer: {},
 }
 }
 
-## Setup backend connection 
+## Setup backend connection
 
 ### 5.1 Setup Cors
 
@@ -82,6 +82,7 @@ async function bootstrap() {
 bootstrap();
 
 ```
+
 ### 5.2 Setup reverse proxy
 
 ```
@@ -307,7 +308,7 @@ export default MainLayout;
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
-const Navbar = () => {
+const Menu = () => {
   const [isOpen, setIsOpen] = useState(false); // State to toggle menu
 
   return (
@@ -356,7 +357,7 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;
+export default Menu;
 
 ```
 
@@ -696,7 +697,7 @@ export default updateUser;
 import getOptions from "../../../utils/middleware/getOptions";
 import URL from "../../../utils/constants/URLs";
 
-const createUser = async (id: string) => {
+const deleteUser = async (id: string) => {
   const API_URL = URL.API_URL;
 
   const response = await fetch(`${API_URL}/v1/users/${id}`, {
@@ -708,7 +709,7 @@ const createUser = async (id: string) => {
   return await response.json();
 };
 
-export default createUser;
+export default deleteUser;
 
 ```
 
@@ -781,5 +782,325 @@ import getUser from "../apis/getUser";
 export const useGetUser = (id: string) => {
   return useQuery(["users", id], () => getUser(id));
 };
+
+```
+
+# Session 3 Authentication and Authorization
+
+## 1. Install Necessary Packages
+
+`npm i @azure/msal-browser @azure/msal-react
+
+## 2. Redefine App to use MSAL Provider
+
+```
+
+// Internal
+import "./App.css";
+import Navigation from "./components/Navigation/Navigation";
+import { ErrorBoundary } from "./utils/errors/ErrorBoundary";
+import translationEn from "./utils/localization/en.json";
+import { PublicClientApplication } from "@azure/msal-browser";
+import { MsalProvider } from "@azure/msal-react";
+
+// External
+import { initReactI18next, useTranslation } from "react-i18next";
+import i18n from "i18next";
+import { msalConfig } from "./infrastructure/auth.config";
+
+const msalInstance = new PublicClientApplication(msalConfig);
+
+function App() {
+  i18n.use(initReactI18next).init({
+    resources: {
+      en: {
+        translation: translationEn,
+      },
+    },
+    lng: "en",
+    fallbackLng: "en",
+    interpolation: {
+      escapeValue: false,
+    },
+  });
+  const { t } = useTranslation();
+  return (
+    <ErrorBoundary fallback={<p>{t("error-boundary-message")}</p>}>
+      <MsalProvider instance={msalInstance}>
+        <Navigation />
+      </MsalProvider>
+    </ErrorBoundary>
+  );
+}
+
+export default App;
+
+```
+
+## 3. Create A LoggedOut Error Component
+
+```
+const LoggedOut = () => {
+  return <>Logged Out</>;
+};
+
+export default LoggedOut;
+
+```
+
+## 4. Redefine Navigation
+
+Navigation needs to use MsalAuthenticationTemplate in order to protect routes from being accessed
+
+```
+// External
+
+import React, { Suspense, useEffect } from "react";
+import { QueryClientProvider } from "react-query";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+// Internal
+import { queryClient } from "../../utils/queryClient/queryClient";
+import { MsalAuthenticationTemplate } from "@azure/msal-react";
+import { InteractionType } from "@azure/msal-browser";
+import { aadScopes } from "../../infrastructure/auth.config";
+import LoggedOut from "../LoggedOut/LoggedOut";
+import useToken from "../../infrastructure/hooks/useToken";
+
+const MainLayout = React.lazy(
+  () =>
+    import(
+      /*webpackPrefetch: true, webpackChunkName: "MainLayout"*/ "../../components/MainLayout/MainLayout"
+    ),
+);
+const HomePage = React.lazy(
+  () =>
+    import(
+      /*webpackPrefetch: true, webpackChunkName: "HomePage"*/ "../../features/home/pages/HomePage"
+    ),
+);
+const UsersListPage = React.lazy(
+  () =>
+    import(
+      /*webpackPrefetch: true, webpackChunkName: "UsersListPage"*/ "../../features/users/pages/UsersListPage"
+    ),
+);
+const UsersCreatePage = React.lazy(
+  () =>
+    import(
+      /*webpackPrefetch: true, webpackChunkName: "UsersCreatePage"*/ "../../features/users/pages/UsersCreatePage"
+    ),
+);
+const UsersEditPage = React.lazy(
+  () =>
+    import(
+      /*webpackPrefetch: true, webpackChunkName: "UsersEditPage"*/ "../../features/users/pages/UsersEditPage"
+    ),
+);
+const TransactionsPage = React.lazy(
+  () =>
+    import(
+      /*webpackPrefetch: true, webpackChunkName: "TransactionsPage"*/ "../../features/transactions/pages/TransactionsPage"
+    ),
+);
+
+const Navigation = () => {
+  const [accessToken] = useToken();
+
+  useEffect(() => {
+    if (accessToken) {
+      sessionStorage.setItem("AccessToken", accessToken);
+    }
+  }, [accessToken]);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <Suspense fallback={<div>Loading...</div>}>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <MsalAuthenticationTemplate
+                  interactionType={InteractionType.Redirect}
+                  authenticationRequest={aadScopes as { scopes: [] }}
+                  errorComponent={LoggedOut}
+                >
+                  <MainLayout />
+                </MsalAuthenticationTemplate>
+              }
+            >
+              <Route
+                path="/"
+                element={
+                  <MsalAuthenticationTemplate
+                    interactionType={InteractionType.Redirect}
+                    authenticationRequest={aadScopes as { scopes: [] }}
+                    errorComponent={LoggedOut}
+                  >
+                    <HomePage />
+                  </MsalAuthenticationTemplate>
+                }
+              />
+
+              <Route
+                path="/users"
+                element={
+                  <MsalAuthenticationTemplate
+                    interactionType={InteractionType.Redirect}
+                    authenticationRequest={aadScopes as { scopes: [] }}
+                    errorComponent={LoggedOut}
+                  >
+                    <UsersListPage />
+                  </MsalAuthenticationTemplate>
+                }
+              />
+              <Route
+                path="/users/create"
+                element={
+                  <MsalAuthenticationTemplate
+                    interactionType={InteractionType.Redirect}
+                    authenticationRequest={aadScopes as { scopes: [] }}
+                    errorComponent={LoggedOut}
+                  >
+                    <UsersCreatePage />
+                  </MsalAuthenticationTemplate>
+                }
+              />
+              <Route
+                path="/users/:id"
+                element={
+                  <MsalAuthenticationTemplate
+                    interactionType={InteractionType.Redirect}
+                    authenticationRequest={aadScopes as { scopes: [] }}
+                    errorComponent={LoggedOut}
+                  >
+                    <UsersEditPage />
+                  </MsalAuthenticationTemplate>
+                }
+              />
+              <Route
+                path="/transactions"
+                element={
+                  <MsalAuthenticationTemplate
+                    interactionType={InteractionType.Redirect}
+                    authenticationRequest={aadScopes as { scopes: [] }}
+                    errorComponent={LoggedOut}
+                  >
+                    <TransactionsPage />
+                  </MsalAuthenticationTemplate>
+                }
+              />
+            </Route>
+          </Routes>
+        </Suspense>
+      </Router>
+    </QueryClientProvider>
+  );
+};
+
+export default Navigation;
+
+```
+
+## 4. Create a local configuration for authentication and authorization from App Registration in Azure
+
+```
+// src/authConfig.js
+import { Configuration } from "@azure/msal-browser";
+
+export const msalConfig: Configuration = {
+  auth: {
+    clientId: "3e151d4f-9432-4f6d-a0eb-bbd190daf5f1", // Your Azure AD Client ID
+    authority:
+      "https://login.microsoftonline.com/0b3fc178-b730-4e8b-9843-e81259237b77", // Your Azure AD Tenant ID
+    redirectUri: "http://localhost:5173", // Set to your application's redirect URI
+  },
+  cache: {
+    cacheLocation: "localStorage", // This configures where your token cache is stored
+    storeAuthStateInCookie: true, // Set to true if you have issues on IE11 or Edge
+  },
+};
+
+export const aadScopes = {
+  scopes: ["api://3e151d4f-9432-4f6d-a0eb-bbd190daf5f1/ready-to-prod"],
+};
+```
+
+## 5. Create a custom useToken hook in order to save access token
+
+```
+import {
+  InteractionRequiredAuthError,
+  InteractionStatus,
+  SilentRequest,
+} from "@azure/msal-browser";
+import { useMsal } from "@azure/msal-react";
+import { useEffect, useState } from "react";
+import { aadScopes } from "../auth.config";
+
+const useToken = (): string[] => {
+  const { instance, accounts, inProgress } = useMsal();
+  const [accessToken, setAccessToken] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (
+      loading &&
+      inProgress === InteractionStatus.None &&
+      accounts.length !== 0
+    ) {
+      const tokenRequest = {
+        account: accounts[0],
+        scopes: aadScopes.scopes,
+      };
+
+      instance
+        .acquireTokenSilent(tokenRequest as SilentRequest)
+        .then((response: { accessToken: string }) => {
+          setAccessToken(response.accessToken);
+          setLoading(false);
+        })
+        .catch(async (e: unknown) => {
+          if (e instanceof InteractionRequiredAuthError) {
+            await instance.acquireTokenSilent(tokenRequest as SilentRequest);
+          }
+          throw e;
+        });
+    }
+  }, [inProgress, accounts, instance, loading]);
+
+  return [accessToken];
+};
+
+export default useToken;
+
+```
+
+## 6. Redefine getOptions method to use Authorization Header with Bearer Token
+
+```
+const getOptions = (method: string): RequestInit => {
+  const headers = new Headers();
+  if (method === "POST" || method === "PUT") {
+    headers.set("Content-type", "application/json");
+  }
+
+  headers.set("Accept", "text/plain");
+
+  const accessToken = sessionStorage.getItem("AccessToken");
+  if (accessToken) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+
+  const options = {
+    mode: "cors",
+    method: method,
+    headers,
+  } as RequestInit;
+
+  return options;
+};
+
+export default getOptions;
 
 ```
