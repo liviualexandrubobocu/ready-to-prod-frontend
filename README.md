@@ -870,37 +870,37 @@ import useToken from "../../infrastructure/hooks/useToken";
 const MainLayout = React.lazy(
   () =>
     import(
-      /*webpackPrefetch: true, webpackChunkName: "MainLayout"*/ "../../components/MainLayout/MainLayout"
+      "../../components/MainLayout/MainLayout"
     ),
 );
 const HomePage = React.lazy(
   () =>
     import(
-      /*webpackPrefetch: true, webpackChunkName: "HomePage"*/ "../../features/home/pages/HomePage"
+      "../../features/home/pages/HomePage"
     ),
 );
 const UsersListPage = React.lazy(
   () =>
     import(
-      /*webpackPrefetch: true, webpackChunkName: "UsersListPage"*/ "../../features/users/pages/UsersListPage"
+      "../../features/users/pages/UsersListPage"
     ),
 );
 const UsersCreatePage = React.lazy(
   () =>
     import(
-      /*webpackPrefetch: true, webpackChunkName: "UsersCreatePage"*/ "../../features/users/pages/UsersCreatePage"
+      "../../features/users/pages/UsersCreatePage"
     ),
 );
 const UsersEditPage = React.lazy(
   () =>
     import(
-      /*webpackPrefetch: true, webpackChunkName: "UsersEditPage"*/ "../../features/users/pages/UsersEditPage"
+      "../../features/users/pages/UsersEditPage"
     ),
 );
 const TransactionsPage = React.lazy(
   () =>
     import(
-      /*webpackPrefetch: true, webpackChunkName: "TransactionsPage"*/ "../../features/transactions/pages/TransactionsPage"
+      "../../features/transactions/pages/TransactionsPage"
     ),
 );
 
