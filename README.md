@@ -1104,3 +1104,176 @@ const getOptions = (method: string): RequestInit => {
 export default getOptions;
 
 ```
+
+# Session 5: Testing
+
+# 5.0 E2E Testing
+
+## 5.1. Setting up Playwright setup for e2e testing
+
+`npm init playwright@latest`
+
+`npx playwright test`
+
+## 5.2. Write Navigation without Azure MSAL
+
+```
+// External
+
+import React, { Suspense } from "react";
+import { QueryClientProvider } from "react-query";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+// Internal
+import { queryClient } from "../../utils/queryClient/queryClient";
+
+
+const MainLayout = React.lazy(
+  () => import("../MainLayout/MainLayout"),
+);
+const HomePage = React.lazy(() => import("../../features/home/pages/HomePage"));
+const UsersListPage = React.lazy(
+  () => import("../../features/users/pages/UsersListPage"),
+);
+const UsersCreatePage = React.lazy(
+  () => import("../../features/users/pages/UsersCreatePage"),
+);
+const UsersEditPage = React.lazy(
+  () => import("../../features/users/pages/UsersEditPage"),
+);
+const TransactionsPage = React.lazy(
+  () => import("../../features/transactions/pages/TransactionsPage"),
+);
+
+const Navigation = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <Suspense fallback={<div>Loading...</div>}>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <MainLayout />
+              }
+            >
+              <Route
+                path="/"
+                element={
+                  <HomePage />
+                }
+              />
+
+              <Route
+                path="/users"
+                element={
+                  <UsersListPage />
+                }
+              />
+              <Route
+                path="/users/create"
+                element={
+                  <UsersCreatePage />
+                }
+              />
+              <Route
+                path="/users/:id"
+                element={
+                  <UsersEditPage />
+                }
+              />
+              <Route
+                path="/transactions"
+                element={
+                    <TransactionsPage />
+                }
+              />
+            </Route>
+          </Routes>
+        </Suspense>
+      </Router>
+    </QueryClientProvider>
+  );
+};
+
+export default Navigation;
+
+```
+
+## 5.3 Write Script to swap files when running tests
+
+```
+const fs = require('fs');
+
+const path = require('path');
+
+const projectRoot = path.resolve(__dirname, '../');
+
+const swapFiles = [
+    {
+        original: path.join(projectRoot, 'src/components/Navigation/Navigation.tsx'),
+        swap: path.join(projectRoot, 'src/components/Navigation/Navigation.swap.tsx')
+    }
+];
+
+swapFiles.forEach(({ original, swap }) => {
+    const fd = fs.openSync(original);
+    const originalContent = fs.readFileSync(original, 'utf8');
+    fs.writeFileSync(`${original}.bak`, originalContent);
+    console.log('wrote on bak');
+    fs.closeSync(fd);
+    const fdS = fs.openSync(swap);
+    const swapContent = fs.readFileSync(swap, 'utf8');
+    fs.writeFileSync(original, swapContent);
+    console.log('wrote on original');
+    fs.closeSync(fdS);
+    fs.writeFileSync(swap, originalContent);
+    console.log('wrote on swap');
+    fs.unlinkSync(`${original}.bak`);
+    console.log('Removed backup file');
+    console.log('Files swapped for testing');
+});
+```
+
+## 5.4 Write commands in package.json
+
+```
+"swap": "node test-scripts/swap.cjs",
+"integration-test": "npx playwright test --reporter=list",
+"integration-test-debug": "PWDEBUG=1 npx playwright test --reporter=list",
+"integration": "npm run swap && npm run integration-test && npm run swap"
+
+```
+
+
+## 5.5 Add integration tests
+
+```
+import { test, chromium, expect } from '@playwright/test';
+
+test.describe("Users Test Suite", () => {
+    test('should go to /users page when selecting user from the menu', async () => {
+        const context = await chromium.launchPersistentContext('', {
+            headless: true,
+            ignoreHTTPSErrors: true
+        });
+    
+        const page = await context.newPage();
+
+        await page.goto("http://localhost:5173");
+        await page.click('a.users-link');
+        await expect(page).toHaveURL('http://localhost:5173/users');
+    })
+    
+});
+
+```
+
+## 5.6 Add users-link class in menu link
+
+```
+className="hover:bg-gray-700 px-3 py-2 rounded block users-link"
+
+```
+
+## 5.7 Run tests
