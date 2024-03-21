@@ -32,7 +32,7 @@ const Navbar = () => {
           <li className="md:ml-6">
             <Link
               to="/users"
-              className="hover:bg-gray-700 px-3 py-2 rounded block"
+              className="hover:bg-gray-700 px-3 py-2 rounded block users-link"
             >
               Users
             </Link>
